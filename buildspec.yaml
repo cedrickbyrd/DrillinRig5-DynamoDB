@@ -5,8 +5,8 @@ phases:
   install:
     commands:
       # Install Terraform CLI
-      - curl -LO https://releases.hashicorp.com/terraform/1.8.5/terraform_1.8.5_linux_amd64.zip # Check for latest stable version on Terraform website
-      - unzip terraform_1.8.5_linux_amd64.zip
+      - curl -LO https://releases.hashicorp.com/terraform/1.12.2/terraform_1.12.2_linux_amd64.zip # Check for latest stable version on Terraform website
+      - unzip terraform_1.12.2_linux_amd64.zip
       - mv terraform /usr/local/bin/
       - terraform version
 
@@ -39,7 +39,7 @@ phases:
       # Set Terraform variables (pass them securely)
       # IMPORTANT: For sensitive values like notification_email, use CodeBuild's environment variables
       # or AWS Systems Manager Parameter Store. Here, we'll demonstrate a mix.
-      - export TF_VAR_notification_email="your_owner_email@example.com" # REPLACE WITH REAL EMAIL
+      - export TF_VAR_notification_email="cedrickjbyrd@gmail.com" # REPLACE WITH REAL EMAIL
       - export TF_VAR_s3_upload_bucket_name="drillinrig-pipeline-uploads-unique-bucket-name" # REPLACE WITH GLOBALLY UNIQUE NAME
       - export TF_VAR_enable_s3_loader="true" # Or "false" based on your project requirements
 
