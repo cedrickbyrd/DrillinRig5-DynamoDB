@@ -1,0 +1,56 @@
+# buildspec.yml
+version: 0.2
+
+phases:
+  install:
+    commands:
+      # Install Terraform CLI
+      - curl -LO https://releases.hashicorp.com/terraform/1.8.5/terraform_1.8.5_linux_amd64.zip # Check for latest stable version on Terraform website
+      - unzip terraform_1.8.5_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+      - terraform version
+
+      # Install Python dependencies for Lambda packaging
+      # This assumes your build environment has Python. AWS CodeBuild managed images usually do.
+      - python3.12 -m pip install --upgrade pip
+      - python3.12 -m pip install boto3 # boto3 is often pre-installed, but explicit is good
+      # Add any other Python dependencies if your Lambda code needs them
+      # - python3.12 -m pip install some-other-lib
+
+  pre_build:
+    commands:
+      - echo "Pre-build phase - Packaging Lambda functions..."
+      # Clean up previous zips if any
+      - rm -f lambda/*.zip
+      # Package InventoryCheckerNotifier Lambda
+      - (cd lambda/inventory_checker_notifier && python3.12 -m pip install -r requirements.txt -t . && zip -r ../inventory_checker_notifier.zip .)
+      # Package S3ToDynamoDBLoader Lambda (only if enabled)
+      - (cd lambda/s3_to_dynamodb_loader && python3.12 -m pip install -r requirements.txt -t . && zip -r ../s3_to_dynamodb_loader.zip .)
+      - ls -l lambda/*.zip # Verify zips are created
+
+  build:
+    commands:
+      - echo "Build phase - Running Terraform..."
+      - terraform init -backend-config="bucket=<YOUR_TERRAFORM_STATE_BUCKET_NAME>" -backend-config="key=terraform/drillinrig-inventory.tfstate" -backend-config="region=<YOUR_AWS_REGION>"
+      # For terraform init, you need a pre-existing S3 bucket for state. If you don't have one,
+      # create it manually or add a separate Terraform config just for state management first.
+      # Make sure to replace <YOUR_TERRAFORM_STATE_BUCKET_NAME> and <YOUR_AWS_REGION>
+
+      # Set Terraform variables (pass them securely)
+      # IMPORTANT: For sensitive values like notification_email, use CodeBuild's environment variables
+      # or AWS Systems Manager Parameter Store. Here, we'll demonstrate a mix.
+      - export TF_VAR_notification_email="your_owner_email@example.com" # REPLACE WITH REAL EMAIL
+      - export TF_VAR_s3_upload_bucket_name="drillinrig-pipeline-uploads-unique-bucket-name" # REPLACE WITH GLOBALLY UNIQUE NAME
+      - export TF_VAR_enable_s3_loader="true" # Or "false" based on your project requirements
+
+      - terraform plan -out=tfplan.out
+      - terraform apply -auto-approve tfplan.out
+
+  post_build:
+    commands:
+      - echo "Post-build phase - Terraform deployment complete."
+      # Optional: Add commands to clean up temp files, or notify success/failure
+artifacts:
+  files:
+    - '**/*' # Package all files as artifacts (optional, but useful for debugging)
+  discard-paths: yes # Do not include the source directory in the artifact path
