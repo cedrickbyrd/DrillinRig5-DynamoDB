@@ -1,0 +1,7 @@
+# Terraform binaries and local state
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
