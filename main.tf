@@ -194,6 +194,11 @@ resource "aws_s3_bucket_notification" "s3_to_dynamodb_notification" {
     filter_prefix       = "uploads/"             # Only process files in the 'uploads/' prefix
     filter_suffix       = ".csv"                 # Only process .csv files
   }
+
+  # Add explicit dependency on the Lambda permission
+  depends_on = [
+    aws_lambda_permission.allow_s3_to_invoke_s3_to_dynamodb_loader
+  ]
 }
 
 # Allow S3 to invoke the Lambda function (Optional)
