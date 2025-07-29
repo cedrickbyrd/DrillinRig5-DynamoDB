@@ -316,4 +316,4 @@ resource "aws_lambda_function" "s3_to_dynamodb_loader" {
 }
 #
 #
-#
+
