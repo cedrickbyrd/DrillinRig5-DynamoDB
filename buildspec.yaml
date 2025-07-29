@@ -1,6 +1,9 @@
 # buildspec.yml
 version: 0.2
 
+runtime-versions:
+  python: 3.12
+
 phases:
   install:
     commands:
@@ -12,10 +15,10 @@ phases:
 
       # Install Python dependencies for Lambda packaging
       # This assumes your build environment has Python. AWS CodeBuild managed images usually do.
-      - python3.12 -m pip install --upgrade pip
-      - python3.12 -m pip install boto3 # boto3 is often pre-installed, but explicit is good
+      - python3 -m pip install --upgrade pip
+      - python3 -m pip install boto3 # boto3 is often pre-installed, but explicit is good
       # Add any other Python dependencies if your Lambda code needs them
-      # - python3.12 -m pip install some-other-lib
+      # - python3 -m pip install some-other-lib
 
   pre_build:
     commands:
@@ -23,15 +26,15 @@ phases:
       # Clean up previous zips if any
       - rm -f lambda/*.zip
       # Package InventoryCheckerNotifier Lambda
-      - (cd lambda/inventory_checker_notifier && python3.12 -m pip install -r requirements.txt -t . && zip -r ../inventory_checker_notifier.zip .)
+      - (cd lambda/inventory_checker_notifier && python3 -m pip install -r requirements.txt -t . && zip -r ../inventory_checker_notifier.zip .)
       # Package S3ToDynamoDBLoader Lambda (only if enabled)
-      - (cd lambda/s3_to_dynamodb_loader && python3.12 -m pip install -r requirements.txt -t . && zip -r ../s3_to_dynamodb_loader.zip .)
+      - (cd lambda/s3_to_dynamodb_loader && python3 -m pip install -r requirements.txt -t . && zip -r ../s3_to_dynamodb_loader.zip .)
       - ls -l lambda/*.zip # Verify zips are created
 
   build:
     commands:
       - echo "Build phase - Running Terraform..."
-      - terraform init -backend-config="bucket=<YOUR_TERRAFORM_STATE_BUCKET_NAME>" -backend-config="key=terraform/drillinrig-inventory.tfstate" -backend-config="region=<YOUR_AWS_REGION>"
+      - terraform init -backend-config="bucket=drillinrig5-codepipeline-artifacts" -backend-config="key=terraform/drillinrig-inventory.tfstate" -backend-config="region=us-east-1"
       # For terraform init, you need a pre-existing S3 bucket for state. If you don't have one,
       # create it manually or add a separate Terraform config just for state management first.
       # Make sure to replace <YOUR_TERRAFORM_STATE_BUCKET_NAME> and <YOUR_AWS_REGION>
@@ -40,7 +43,7 @@ phases:
       # IMPORTANT: For sensitive values like notification_email, use CodeBuild's environment variables
       # or AWS Systems Manager Parameter Store. Here, we'll demonstrate a mix.
       - export TF_VAR_notification_email="cedrickjbyrd@gmail.com" # REPLACE WITH REAL EMAIL
-      - export TF_VAR_s3_upload_bucket_name="drillinrig-pipeline-uploads-unique-bucket-name" # REPLACE WITH GLOBALLY UNIQUE NAME
+      - export TF_VAR_s3_upload_bucket_name="drillinrig-pipeline-uploads-cedrick-20250728-kali" # REPLACE WITH GLOBALLY UNIQUE NAME
       - export TF_VAR_enable_s3_loader="true" # Or "false" based on your project requirements
 
       - terraform plan -out=tfplan.out
