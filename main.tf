@@ -7,9 +7,9 @@ provider "aws" {
 # 1. DynamoDB Table
 # -----------------------------------------------------------------------------
 resource "aws_dynamodb_table" "inventory" {
-  name             = var.dynamodb_table_name
-  billing_mode     = "PAY_PER_REQUEST" # On-demand capacity
-  hash_key         = "item_id"
+  name         = var.dynamodb_table_name
+  billing_mode = "PAY_PER_REQUEST" # On-demand capacity
+  hash_key     = "item_id"
 
   attribute {
     name = "item_id"
@@ -126,17 +126,17 @@ data "archive_file" "inventory_checker_lambda_zip" {
 resource "aws_lambda_function" "inventory_checker_notifier" {
   function_name    = "${var.project_name}-InventoryCheckerNotifier"
   handler          = "main.lambda_handler" # File name is main.py, function is lambda_handler
-  runtime          = "python3.12" # Or latest stable Python runtime
+  runtime          = "python3.12"          # Or latest stable Python runtime
   role             = aws_iam_role.inventory_checker_lambda_role.arn
   filename         = data.archive_file.inventory_checker_lambda_zip.output_path
   source_code_hash = data.archive_file.inventory_checker_lambda_zip.output_base64sha256
-  timeout          = 30 # seconds
+  timeout          = 30  # seconds
   memory_size      = 128 # MB
 
   environment {
     variables = {
-      SNS_TOPIC_ARN         = aws_sns_topic.low_inventory_alerts.arn
-      DEFAULT_MIN_QUANTITY  = var.default_minimum_quantity # Fallback if item has no specific min_quantity
+      SNS_TOPIC_ARN        = aws_sns_topic.low_inventory_alerts.arn
+      DEFAULT_MIN_QUANTITY = var.default_minimum_quantity # Fallback if item has no specific min_quantity
     }
   }
 
@@ -148,11 +148,11 @@ resource "aws_lambda_function" "inventory_checker_notifier" {
 
 # Lambda Event Source Mapping (DynamoDB Stream Trigger)
 resource "aws_lambda_event_source_mapping" "inventory_stream_mapping" {
-  event_source_arn = aws_dynamodb_table.inventory.stream_arn
-  function_name    = aws_lambda_function.inventory_checker_notifier.arn
-  starting_position = "LATEST" # Start processing from new records
-  batch_size       = 10 # Process up to 10 records at a time
-  maximum_batching_window_in_seconds = 1 # Process records as quickly as possible
+  event_source_arn                   = aws_dynamodb_table.inventory.stream_arn
+  function_name                      = aws_lambda_function.inventory_checker_notifier.arn
+  starting_position                  = "LATEST" # Start processing from new records
+  batch_size                         = 10       # Process up to 10 records at a time
+  maximum_batching_window_in_seconds = 1        # Process records as quickly as possible
   # For production, consider 'TRIM_HORIZON' for initial load or full replay
   # or ensure your function is idempotent if using 'TRIM_HORIZON'.
 }
@@ -191,8 +191,8 @@ resource "aws_s3_bucket_notification" "s3_to_dynamodb_notification" {
   lambda_function {
     lambda_function_arn = aws_lambda_function.s3_to_dynamodb_loader[0].arn
     events              = ["s3:ObjectCreated:*"] # Trigger on any new object creation
-    filter_prefix       = "uploads/" # Only process files in the 'uploads/' prefix
-    filter_suffix       = ".csv"     # Only process .csv files
+    filter_prefix       = "uploads/"             # Only process files in the 'uploads/' prefix
+    filter_suffix       = ".csv"                 # Only process .csv files
   }
 }
 
